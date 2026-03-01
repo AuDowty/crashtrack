@@ -1,0 +1,17 @@
+{
+  "name": "crashtrack",
+  "private": true,
+  "version": "0.0.1",
+  "workspaces": [
+    "apps/*",
+    "packages/shared-types"
+  ],
+  "scripts": {
+    "dev:api": "npm --workspace apps/api run dev",
+    "dev:web": "npm --workspace apps/web run dev",
+    "build:web": "npm --workspace apps/web run build",
+    "deploy:api": "npm --workspace apps/api run deploy",
+    "migrate:local": "npm --workspace apps/api run migrate:local",
+    "migrate:remote": "npm --workspace apps/api run migrate:remote"
+  }
+}

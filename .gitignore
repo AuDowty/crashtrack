@@ -1,0 +1,13 @@
+node_modules/
+dist/
+*.tsbuildinfo
+.wrangler/
+.dev.vars
+.dev.vars.local
+*.log
+.DS_Store
+target/
+Cargo.lock
+pkg/
+.env
+.env.local
