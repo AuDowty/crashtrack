@@ -1,0 +1,95 @@
+name = "crashtrack-api"
+main = "src/index.ts"
+compatibility_date = "2025-01-01"
+compatibility_flags = ["nodejs_compat"]
+
+# Public vars (non-secret). Override per-env below; secrets via `wrangler secret put`.
+[vars]
+APP_ORIGIN = "http://localhost:5173"
+API_ORIGIN = "http://localhost:8787"
+# Hard cap on per-project minidump storage (default 1 GiB).
+PROJECT_QUOTA_BYTES = "1073741824"
+# Daily cap on crash count per project (anti-flood, separate from byte quota).
+PROJECT_DAILY_CRASH_CAP = "5000"
+
+# Per-api-key rate limit: 100 uploads per minute.
+[[unsafe.bindings]]
+name        = "INGEST_LIMITER"
+type        = "ratelimit"
+namespace_id = "1001"
+simple      = { limit = 100, period = 60 }
+
+# Public/unauth IP-bucketed limiter: protects /p/* and /api/auth/github from
+# DoS-by-cost (someone hammering a free CPU+D1 endpoint). 30 req / 10s.
+[[unsafe.bindings]]
+name        = "PUBLIC_LIMITER"
+type        = "ratelimit"
+namespace_id = "1002"
+simple      = { limit = 30, period = 10 }
+
+# Production env — deploy via `wrangler deploy --env production`.
+[env.production]
+name = "crashtrack-api"
+routes = [
+  { pattern = "api.crashtrack.dev", custom_domain = true },
+]
+
+[env.production.vars]
+APP_ORIGIN              = "https://crashtrack.dev"
+API_ORIGIN              = "https://api.crashtrack.dev"
+PROJECT_QUOTA_BYTES     = "1073741824"
+PROJECT_DAILY_CRASH_CAP = "5000"
+
+[[env.production.unsafe.bindings]]
+name        = "INGEST_LIMITER"
+type        = "ratelimit"
+namespace_id = "1001"
+simple      = { limit = 100, period = 60 }
+
+[[env.production.unsafe.bindings]]
+name        = "PUBLIC_LIMITER"
+type        = "ratelimit"
+namespace_id = "1002"
+simple      = { limit = 30, period = 10 }
+
+[[env.production.d1_databases]]
+binding        = "DB"
+database_name  = "crashtrack"
+database_id    = "dd98b36d-5d55-485e-ad0e-9a74b42613ed"
+migrations_dir = "../../migrations"
+
+[[env.production.r2_buckets]]
+binding     = "DUMPS"
+bucket_name = "crashtrack-dumps"
+
+[[env.production.r2_buckets]]
+binding     = "SYMBOLS"
+bucket_name = "crashtrack-symbols"
+
+[[env.production.r2_buckets]]
+binding     = "PE_FILES"
+bucket_name = "crashtrack-pe"
+
+# D1 database. Run once: `wrangler d1 create crashtrack` then paste the id here.
+[[d1_databases]]
+binding       = "DB"
+database_name = "crashtrack"
+database_id   = "dd98b36d-5d55-485e-ad0e-9a74b42613ed"
+migrations_dir = "../../migrations"
+
+# R2 buckets. Run once: `wrangler r2 bucket create crashtrack-dumps` and `... crashtrack-symbols`.
+[[r2_buckets]]
+binding     = "DUMPS"
+bucket_name = "crashtrack-dumps"
+
+[[r2_buckets]]
+binding     = "SYMBOLS"
+bucket_name = "crashtrack-symbols"
+
+[[r2_buckets]]
+binding     = "PE_FILES"
+bucket_name = "crashtrack-pe"
+
+# Secrets required (set via `wrangler secret put`):
+#   GITHUB_CLIENT_ID
+#   GITHUB_CLIENT_SECRET
