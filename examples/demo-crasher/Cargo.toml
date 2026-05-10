@@ -1,0 +1,19 @@
+[package]
+name        = "crashtrack-demo-crasher"
+version     = "0.1.0"
+edition     = "2021"
+publish     = false
+description = "Sample app that intentionally crashes — for testing crashtrack ingest."
+
+[[bin]]
+name = "demo-crasher"
+path = "src/main.rs"
+
+[dependencies]
+crashtrack = "0.1"
+
+[profile.release]
+# Keep frame pointers so the stack walker has frames to walk.
+opt-level = 1
+debug     = true
+strip     = false
