@@ -1,0 +1,39 @@
+name: demo-release
+
+on:
+  push:
+    tags:
+      - 'demo-v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: examples/demo-crasher
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: examples/demo-crasher
+      - name: build
+        run: cargo build --release
+      - name: package
+        shell: bash
+        run: |
+          mkdir -p out
+          cp target/release/demo-crasher.exe out/
+          cp README.md out/
+      - name: upload
+        if: startsWith(github.ref, 'refs/tags/demo-v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            examples/demo-crasher/out/demo-crasher.exe
+            examples/demo-crasher/out/README.md
+          generate_release_notes: true

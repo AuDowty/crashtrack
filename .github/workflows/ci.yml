@@ -1,0 +1,81 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: packages/parser
+      - name: install wasm-pack
+        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+      - name: build wasm parser (the worker imports from packages/parser/pkg/)
+        run: cd packages/parser && wasm-pack build --target web --release
+      - run: npm ci
+      - run: npm --workspace apps/api run typecheck
+      - run: npm --workspace apps/api run test
+      - run: npm --workspace apps/web run typecheck
+      - run: npm --workspace apps/web run build
+
+  client-rs:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: packages/client-rs
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: packages/client-rs
+      - run: cargo check --release
+      - run: cargo build --release --example demo_crash
+
+  demo-crasher:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: examples/demo-crasher
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: examples/demo-crasher
+      - run: cargo build --release
+
+  parser-wasm:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: packages/parser
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: packages/parser
+      - name: install wasm-pack
+        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+      - name: build
+        run: wasm-pack build --target web --release
